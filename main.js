@@ -6,6 +6,7 @@ const os = require('os');
 let mainWindow = null;
 let logWatcher = null;
 let lastFileSize = 0;
+let watchDebounceTimer = null;
 
 // Default EE.log path (Windows default location)
 function getDefaultLogPath() {
@@ -63,6 +64,7 @@ function parseLogLine(line) {
 
 // Read new lines from the log file
 function readNewLogContent(logPath) {
+    let fd = null;
     try {
         const stats = fs.statSync(logPath);
         const currentSize = stats.size;
@@ -73,16 +75,23 @@ function readNewLogContent(logPath) {
         }
         
         if (currentSize > lastFileSize) {
-            const fd = fs.openSync(logPath, 'r');
+            fd = fs.openSync(logPath, 'r');
             const buffer = Buffer.alloc(currentSize - lastFileSize);
             fs.readSync(fd, buffer, 0, buffer.length, lastFileSize);
-            fs.closeSync(fd);
             
             lastFileSize = currentSize;
             return buffer.toString('utf-8');
         }
     } catch (err) {
         console.error('Error reading log file:', err.message);
+    } finally {
+        if (fd !== null) {
+            try {
+                fs.closeSync(fd);
+            } catch (closeErr) {
+                console.error('Error closing file:', closeErr.message);
+            }
+        }
     }
     return '';
 }
@@ -92,6 +101,11 @@ function startLogWatcher(logPath) {
     if (logWatcher) {
         logWatcher.close();
         logWatcher = null;
+    }
+    
+    if (watchDebounceTimer) {
+        clearTimeout(watchDebounceTimer);
+        watchDebounceTimer = null;
     }
     
     if (!fs.existsSync(logPath)) {
@@ -111,19 +125,25 @@ function startLogWatcher(logPath) {
         lastFileSize = 0;
     }
     
-    // Watch for file changes
+    // Watch for file changes with debouncing to handle multiple events
     logWatcher = fs.watch(logPath, (eventType) => {
         if (eventType === 'change') {
-            const newContent = readNewLogContent(logPath);
-            if (newContent) {
-                const lines = newContent.split('\n');
-                for (const line of lines) {
-                    const result = parseLogLine(line);
-                    if (result && mainWindow) {
-                        mainWindow.webContents.send('standing-change', result);
+            // Debounce to prevent processing the same change multiple times
+            if (watchDebounceTimer) {
+                clearTimeout(watchDebounceTimer);
+            }
+            watchDebounceTimer = setTimeout(() => {
+                const newContent = readNewLogContent(logPath);
+                if (newContent) {
+                    const lines = newContent.split('\n');
+                    for (const line of lines) {
+                        const result = parseLogLine(line);
+                        if (result && mainWindow) {
+                            mainWindow.webContents.send('standing-change', result);
+                        }
                     }
                 }
-            }
+            }, 100); // 100ms debounce
         }
     });
     
@@ -139,6 +159,10 @@ function startLogWatcher(logPath) {
 
 // Stop watching the log file
 function stopLogWatcher() {
+    if (watchDebounceTimer) {
+        clearTimeout(watchDebounceTimer);
+        watchDebounceTimer = null;
+    }
     if (logWatcher) {
         logWatcher.close();
         logWatcher = null;
