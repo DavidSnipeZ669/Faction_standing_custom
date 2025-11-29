@@ -1,14 +1,3 @@
-// The Relationship Matrix
-// Key = Faction Name, Value = How it affects others when YOU farm Key.
-const relationships = {
-    steel: { steel: 1.0, veil: 0.5, loka: -0.5, perrin: -1.0 },
-    arbiters: { arbiters: 1.0, suda: 0.5, perrin: -0.5, veil: -1.0 },
-    suda: { suda: 1.0, arbiters: 0.5, veil: -0.5, loka: -1.0 },
-    perrin: { perrin: 1.0, loka: 0.5, arbiters: -0.5, steel: -1.0 },
-    veil: { veil: 1.0, steel: 0.5, suda: -0.5, arbiters: -1.0 },
-    loka: { loka: 1.0, perrin: 0.5, steel: -0.5, suda: -1.0 }
-};
-
 const factionNames = {
     steel: 'Steel Meridian',
     arbiters: 'Arbiters of Hexis',
@@ -20,13 +9,9 @@ const factionNames = {
 
 const factions = ['steel', 'arbiters', 'suda', 'perrin', 'veil', 'loka'];
 
-// Get all inputs
+// Get all inputs and listen for changes
 const inputs = document.querySelectorAll('input[type="number"]');
-
-// Add listeners to all inputs
-inputs.forEach(input => {
-    input.addEventListener('input', calculate);
-});
+inputs.forEach(input => input.addEventListener('input', solve));
 
 // IPC communication with main process
 const { ipcRenderer } = require('electron');
@@ -106,12 +91,12 @@ ipcRenderer.on('standing-change', (event, data) => {
     
     if (factions.includes(faction)) {
         // Update the current balance for this faction
-        const currInput = document.getElementById(`curr-${faction}`);
-        const currentValue = parseFloat(currInput.value) || 0;
-        currInput.value = currentValue + change;
+        const input = document.getElementById(`val-${faction}`);
+        const currentValue = parseFloat(input.value) || 0;
+        input.value = currentValue + change;
         
-        // Recalculate all projections
-        calculate();
+        // Recalculate solver
+        solve();
         
         // Add to events log
         addEventToLog(faction, change);
@@ -147,7 +132,7 @@ function addEventToLog(faction, change) {
 
 // Highlight a row when it gets updated
 function highlightRow(faction) {
-    const row = document.querySelector(`tr[data-faction="${faction}"]`);
+    const row = document.querySelector(`.faction-row[data-faction="${faction}"]`);
     if (row) {
         row.style.transition = 'background-color 0.3s ease';
         row.style.backgroundColor = 'rgba(212, 175, 55, 0.3)';
@@ -157,54 +142,127 @@ function highlightRow(faction) {
     }
 }
 
-function calculate() {
-    // 1. Initialize Net Changes for all factions to 0
-    let netChanges = {
-        steel: 0, arbiters: 0, suda: 0, perrin: 0, veil: 0, loka: 0
-    };
+function solve() {
+    // 1. Get current values
+    const steel = parseFloat(document.getElementById('val-steel').value) || 0;
+    const arbiters = parseFloat(document.getElementById('val-arbiters').value) || 0;
+    const suda = parseFloat(document.getElementById('val-suda').value) || 0;
+    const perrin = parseFloat(document.getElementById('val-perrin').value) || 0;
+    const veil = parseFloat(document.getElementById('val-veil').value) || 0;
+    const loka = parseFloat(document.getElementById('val-loka').value) || 0;
 
-    // 2. Loop through every "Farm Input" to see what the user is planning
-    factions.forEach(sourceFaction => {
-        const farmAmount = parseFloat(document.getElementById(`farm-${sourceFaction}`).value) || 0;
+    const CAP = 132000;
+    
+    // UI Elements
+    const targetEl = document.getElementById('pledge-target');
+    const amountEl = document.getElementById('farm-amount');
+    const reasonEl = document.getElementById('reason-text');
+    const iconEl = document.getElementById('mission-icon');
+    const boxEl = document.getElementById('mission-box');
+
+    // Reset Styles
+    boxEl.className = 'mission-box';
+
+    // --- THE LOGIC ENGINE ---
+
+    // Priority 1: EMERGENCY REPAIR (Don't let Loka/Veil de-rank)
+    // We assume a safety buffer of 5000 standing
+    const SAFETY_BUFFER = 5000;
+
+    if (loka < SAFETY_BUFFER && loka < CAP) {
+        setMission("New Loka", "loka", "L", 
+            `Farm until Loka is ${SAFETY_BUFFER}+`, 
+            "CRITICAL: New Loka is dangerously low. Repair immediately.");
+        return;
+    }
+
+    if (veil < SAFETY_BUFFER && veil < CAP) {
+        setMission("Red Veil", "veil", "V", 
+            `Farm until Veil is ${SAFETY_BUFFER}+`, 
+            "CRITICAL: Red Veil is dangerously low. Repair immediately.");
+        return;
+    }
+
+    // Priority 2: Fix Steel Meridian (It's the easiest fix via Red Veil)
+    // If Steel is not maxed, and Veil is safe, pump Veil.
+    // Why? Because Veil gives +50% to Steel without hurting Loka.
+    if (steel < CAP && veil < CAP) {
+        let spaceInSteel = CAP - steel;
+        let spaceInVeil = CAP - veil;
         
-        // If user is farming "sourceFaction", apply impacts to everyone else
-        if (farmAmount !== 0) {
-            const impacts = relationships[sourceFaction];
-            
-            // Apply impacts defined in matrix
-            // Note: impacts object only contains affected parties. 
-            // We iterate through the specific impacts defined in the matrix.
-            for (const [targetFaction, multiplier] of Object.entries(impacts)) {
-                netChanges[targetFaction] += (farmAmount * multiplier);
+        // We can only farm as much as Red Veil can hold
+        let amount = Math.min(spaceInVeil, spaceInSteel * 2); 
+        
+        setMission("Red Veil", "veil", "V", 
+            `Farm: ${formatNumber(amount)} Standing`, 
+            "Goal: Raise Steel Meridian (Passive) & Red Veil.");
+        return;
+    }
+
+    // Priority 3: The Hard Part (Suda & Hexis)
+    // We need to raise Suda, but Suda hurts Loka (-100%) and Veil (-50%).
+    if (suda < CAP || arbiters < CAP) {
+        
+        // How much 'Health' do our victims have?
+        // Suda deals 1.0 damage to Loka, and 0.5 damage to Veil.
+        
+        let safeFarmLoka = loka - SAFETY_BUFFER; // How much we can lose from Loka
+        let safeFarmVeil = (veil - SAFETY_BUFFER) * 2; // How much we can lose from Veil (Suda deals half dmg)
+        
+        // The maximum we can farm for Suda is limited by the weakest link
+        let maxSafeFarm = Math.min(safeFarmLoka, safeFarmVeil);
+        
+        if (maxSafeFarm > 1000) {
+            // We have room to grow!
+            let amount = Math.min(maxSafeFarm, CAP - suda);
+            setMission("Cephalon Suda", "suda", "S", 
+                `Farm: ${formatNumber(amount)} Standing`, 
+                "Goal: Raise Suda/Hexis. Stop before Loka/Veil crash.");
+            return;
+        } else {
+            // We have NO room. We must rebuild the buffer.
+            if (safeFarmLoka < safeFarmVeil) {
+                // Loka is the bottleneck
+                let amount = Math.min(CAP - loka, 20000); // Farm a chunk
+                setMission("New Loka", "loka", "L", 
+                    `Farm: ${formatNumber(amount)} Standing`, 
+                    "Buffer Rebuild: Suda cannot be leveled until Loka is higher.");
+                return;
+            } else {
+                // Veil is the bottleneck
+                let amount = Math.min(CAP - veil, 20000);
+                setMission("Red Veil", "veil", "V", 
+                    `Farm: ${formatNumber(amount)} Standing`, 
+                    "Buffer Rebuild: Suda cannot be leveled until Veil is higher.");
+                return;
             }
         }
-    });
+    }
 
-    // 3. Update the UI
-    factions.forEach(faction => {
-        const currentBalance = parseFloat(document.getElementById(`curr-${faction}`).value) || 0;
-        const netChange = netChanges[faction];
-        const finalTotal = currentBalance + netChange;
+    // If we are here... everything is Maxed?
+    setMission("None", "steel", "★", "You are Maxed Out!", "Congratulations. All relevant factions are at cap.");
 
-        // Update Net Change Cell
-        const netEl = document.getElementById(`net-${faction}`);
-        netEl.textContent = (netChange > 0 ? "+" : "") + netChange;
-        
-        // Color code Net Change
-        netEl.style.color = netChange > 0 ? "#90ff90" : (netChange < 0 ? "#ff8888" : "#888");
+    // Helper functions
+    function setMission(name, styleClass, icon, amountTxt, reason) {
+        targetEl.innerText = "Pledge: " + name;
+        targetEl.style.color = getFactionColor(styleClass);
+        amountEl.innerText = amountTxt;
+        reasonEl.innerText = reason;
+        iconEl.innerText = icon;
+        iconEl.style.borderColor = getFactionColor(styleClass);
+        iconEl.style.color = getFactionColor(styleClass);
+        boxEl.classList.add(`pledge-${styleClass}`);
+    }
 
-        // Update Final Total Cell
-        const totalEl = document.getElementById(`total-${faction}`);
-        totalEl.textContent = finalTotal;
+    function getFactionColor(c) {
+        const colors = { 
+            steel: '#d85134', veil: '#b30000', loka: '#7a9c68', 
+            suda: '#0088ff', perrin: '#1a5e63', arbiters: '#a8a8a8' 
+        };
+        return colors[c] || '#fff';
+    }
 
-        // Apply Conditional Formatting
-        totalEl.className = "readonly"; // reset classes
-        if (finalTotal < 0) {
-            totalEl.classList.add('negative');
-        } else if (finalTotal > 132000) {
-            totalEl.classList.add('warning');
-        } else {
-            totalEl.classList.add('safe');
-        }
-    });
+    function formatNumber(num) {
+        return Math.floor(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
 }
