@@ -117,3 +117,186 @@ input:focus {
 }
 .dot.red { background-color: #ff4444; }
 .dot.yellow { background-color: #ffcc00; }
+
+/* Live Tracking Styles */
+.tracking-section {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #333;
+}
+
+.tracking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.tracking-header h2 {
+    margin: 0;
+    color: #d4af37;
+    font-size: 1.2em;
+}
+
+.tracking-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: #1e88e5;
+    color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #1565c0;
+}
+
+.btn-secondary {
+    background-color: #444;
+    color: #e0e0e0;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #555;
+}
+
+.btn-small {
+    padding: 5px 10px;
+    font-size: 0.8em;
+    background-color: #333;
+    color: #888;
+}
+
+.btn-small:hover {
+    background-color: #444;
+}
+
+.tracking-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.indicator.active {
+    background-color: #4caf50;
+}
+
+.indicator.inactive {
+    background-color: #666;
+    animation: none;
+}
+
+.indicator.error {
+    background-color: #ff4444;
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+#tracking-status-text {
+    color: #888;
+    font-size: 0.9em;
+}
+
+#log-path {
+    width: 100%;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 4px;
+    color: #888;
+    font-size: 0.85em;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.tracking-info {
+    color: #666;
+    font-size: 0.85em;
+    margin: 0;
+}
+
+.tracking-info .note {
+    color: #d4af37;
+}
+
+/* Events Log */
+.events-section {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    border: 1px solid #333;
+}
+
+.events-section h3 {
+    margin: 0 0 10px 0;
+    color: #d4af37;
+    font-size: 1em;
+}
+
+.events-log {
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #151515;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+}
+
+.event-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #222;
+    display: flex;
+    justify-content: space-between;
+}
+
+.event-item:last-child {
+    border-bottom: none;
+}
+
+.event-time {
+    color: #666;
+}
+
+.event-faction {
+    color: #82caff;
+}
+
+.event-change.positive {
+    color: #90ff90;
+}
+
+.event-change.negative {
+    color: #ff8888;
+}

@@ -13,6 +13,27 @@
             <p>Plan your grind. Balance the system.</p>
         </header>
 
+        <!-- Live Tracking Section -->
+        <div class="tracking-section">
+            <div class="tracking-header">
+                <h2>📡 Live Tracking</h2>
+                <div class="tracking-controls">
+                    <button id="btn-start-tracking" class="btn btn-primary">Start Tracking</button>
+                    <button id="btn-stop-tracking" class="btn btn-secondary" disabled>Stop</button>
+                    <button id="btn-browse-log" class="btn btn-secondary">Browse...</button>
+                </div>
+            </div>
+            <div class="tracking-status">
+                <span id="tracking-indicator" class="indicator inactive"></span>
+                <span id="tracking-status-text">Not tracking</span>
+            </div>
+            <input type="text" id="log-path" placeholder="Path to EE.log (auto-detected)" readonly>
+            <p class="tracking-info">
+                Reads Warframe's EE.log to automatically track standing changes. 
+                <span class="note">Keep Warframe running for live updates.</span>
+            </p>
+        </div>
+
         <div class="table-container">
             <table>
                 <thead>
@@ -87,6 +108,13 @@
         <div class="legend">
             <span class="dot red"></span> Negative Rank Warning (< 0) &nbsp;&nbsp;
             <span class="dot yellow"></span> Cap Warning (> 132,000)
+        </div>
+
+        <!-- Live Events Log -->
+        <div class="events-section" id="events-section" style="display: none;">
+            <h3>📜 Recent Standing Changes</h3>
+            <div id="events-log" class="events-log"></div>
+            <button id="btn-clear-events" class="btn btn-small">Clear Log</button>
         </div>
     </div>
 
