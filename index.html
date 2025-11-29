@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warframe Syndicate Calculator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Syndicate Standing Manager</h1>
+            <p>Plan your grind. Balance the system.</p>
+        </header>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Faction</th>
+                        <th>Current Balance</th>
+                        <th>Planned Farm</th>
+                        <th>Net Change</th>
+                        <th>Projected Total</th>
+                    </tr>
+                </thead>
+                <tbody id="faction-grid">
+                    <!-- Rows generated here correspond to IDs in renderer.js -->
+                    
+                    <!-- Steel Meridian -->
+                    <tr data-faction="steel">
+                        <td class="name">Steel Meridian</td>
+                        <td><input type="number" id="curr-steel" value="0" step="100"></td>
+                        <td><input type="number" id="farm-steel" value="0" step="100" class="farm-input"></td>
+                        <td id="net-steel" class="readonly">0</td>
+                        <td id="total-steel" class="readonly">0</td>
+                    </tr>
+
+                    <!-- Arbiters of Hexis -->
+                    <tr data-faction="arbiters">
+                        <td class="name">Arbiters of Hexis</td>
+                        <td><input type="number" id="curr-arbiters" value="0" step="100"></td>
+                        <td><input type="number" id="farm-arbiters" value="0" step="100" class="farm-input"></td>
+                        <td id="net-arbiters" class="readonly">0</td>
+                        <td id="total-arbiters" class="readonly">0</td>
+                    </tr>
+
+                    <!-- Cephalon Suda -->
+                    <tr data-faction="suda">
+                        <td class="name">Cephalon Suda</td>
+                        <td><input type="number" id="curr-suda" value="0" step="100"></td>
+                        <td><input type="number" id="farm-suda" value="0" step="100" class="farm-input"></td>
+                        <td id="net-suda" class="readonly">0</td>
+                        <td id="total-suda" class="readonly">0</td>
+                    </tr>
+
+                    <!-- Perrin Sequence -->
+                    <tr data-faction="perrin">
+                        <td class="name">Perrin Sequence</td>
+                        <td><input type="number" id="curr-perrin" value="0" step="100"></td>
+                        <td><input type="number" id="farm-perrin" value="0" step="100" class="farm-input"></td>
+                        <td id="net-perrin" class="readonly">0</td>
+                        <td id="total-perrin" class="readonly">0</td>
+                    </tr>
+
+                    <!-- Red Veil -->
+                    <tr data-faction="veil">
+                        <td class="name">Red Veil</td>
+                        <td><input type="number" id="curr-veil" value="0" step="100"></td>
+                        <td><input type="number" id="farm-veil" value="0" step="100" class="farm-input"></td>
+                        <td id="net-veil" class="readonly">0</td>
+                        <td id="total-veil" class="readonly">0</td>
+                    </tr>
+
+                    <!-- New Loka -->
+                    <tr data-faction="loka">
+                        <td class="name">New Loka</td>
+                        <td><input type="number" id="curr-loka" value="0" step="100"></td>
+                        <td><input type="number" id="farm-loka" value="0" step="100" class="farm-input"></td>
+                        <td id="net-loka" class="readonly">0</td>
+                        <td id="total-loka" class="readonly">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="legend">
+            <span class="dot red"></span> Negative Rank Warning (< 0) &nbsp;&nbsp;
+            <span class="dot yellow"></span> Cap Warning (> 132,000)
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
